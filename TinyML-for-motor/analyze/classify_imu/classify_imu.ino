@@ -22,12 +22,13 @@
 #include <tensorflow/lite/schema/schema_generated.h>
 #include <tensorflow/lite/version.h>
 
-#include "model_yesno.h"
+#include "model.h"
 
 const float accelerationThreshold = 2.5; // threshold of significant in G's
-const int numSamples = 119;
+const int numSamples = 238;
 
 int samplesRead = numSamples;
+
 
 // global variables used for TensorFlow Lite (Micro)
 tflite::MicroErrorReporter tflErrorReporter;
@@ -49,12 +50,13 @@ byte tensorArena[tensorArenaSize] __attribute__((aligned(16)));
 
 // array to map gesture index to a name
 const char* GESTURES[] = {
-  "yes",
-  "no"
+  "YES",
+  "NO"
 };
 
 #define NUM_GESTURES (sizeof(GESTURES) / sizeof(GESTURES[0]))
-
+int compteur=0;
+int score=0;
 void setup() {
   Serial.begin(9600);
   while (!Serial);
@@ -74,7 +76,7 @@ void setup() {
   Serial.println(" Hz");
 
   Serial.println();
-
+ 
   // get the TFL representation of the model byte array
   tflModel = tflite::GetModel(model);
   if (tflModel->version() != TFLITE_SCHEMA_VERSION) {
@@ -94,8 +96,12 @@ void setup() {
 }
 
 void loop() {
+      if(compteur==0)
+  {
+    Serial.println("Question 1: Est-ce que le ciel est bleu ?");
+    
+  }
   float aX, aY, aZ, gX, gY, gZ;
-
   // wait for significant motion
   while (samplesRead == numSamples) {
     if (IMU.accelerationAvailable()) {
@@ -133,6 +139,7 @@ void loop() {
       tflInputTensor->data.f[samplesRead * 6 + 5] = (gZ + 2000.0) / 4000.0;
 
       samplesRead++;
+      
 
       if (samplesRead == numSamples) {
         // Run inferencing
@@ -142,14 +149,30 @@ void loop() {
           while (1);
           return;
         }
-
-        // Loop through the output tensor values from the model
-        for (int i = 0; i < NUM_GESTURES; i++) {
-          Serial.print(GESTURES[i]);
-          Serial.print(": ");
-          Serial.println(tflOutputTensor->data.f[i], 6);
-        }
-        Serial.println();
+          // Find the index with the highest confidence in the output tensor
+        int maxIndex = 0;
+        float maxConfidence = tflOutputTensor->data.f[0];
+        for (int i = 1; i < NUM_GESTURES; i++) {
+          if (tflOutputTensor->data.f[i] > maxConfidence) {
+          maxIndex = i;
+          maxConfidence = tflOutputTensor->data.f[i];
+          }
+        }  
+  Serial.print("Geste effectué ");
+  Serial.println(GESTURES[maxIndex]);
+  compteur=compteur+1;
+  if(compteur==1)
+  {
+  Serial.println("1+1=2 ?");
+  if(GESTURES[maxIndex]=="YES"){score++;}
+  }
+  if(compteur==2)
+  {
+    Serial.println("2+2=5");
+    if(GESTURES[maxIndex]=="NO"){score++;}
+  }
+  Serial.println("score : " + String(score));
+  
       }
     }
   }
