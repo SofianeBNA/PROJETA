@@ -1,5 +1,6 @@
 import serial
 import csv
+#Ce script Python est conçu pour collecter des données provenant d'un port série (probablement à partir d'un capteur) et les enregistrer dans un fichier CSV.
 
 # Serial port configuration
 SERIAL_PORT = 'COM5'  # Replace with your serial port
